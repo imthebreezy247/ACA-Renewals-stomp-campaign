@@ -16,7 +16,9 @@
       "Bash(git commit:*)",
       "Bash(pip install:*)",
       "Bash(rm:*)",
-      "Bash(python verify_setup.py:*)"
+      "Bash(python verify_setup.py:*)",
+      "Bash(cat:*)",
+      "Bash(clip)"
     ],
     "deny": [],
     "ask": []

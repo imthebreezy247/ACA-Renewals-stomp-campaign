@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh repo create:*)",
+      "Bash(if [ -d .git ])",
+      "Bash(then rm -rf .git)",
+      "Bash(fi)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: Add ACA Renewals STOMP Campaign files\n\n- Add Daniel Hera sold deals data (CSV and JSON)\n- Add extraction script for sold deals\n- Add documentation (README, Setup Guide, Summary)\n- Add setup verification script\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git rm:*)",
+      "Bash(git reset:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

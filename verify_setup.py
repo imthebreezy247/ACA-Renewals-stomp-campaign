@@ -18,7 +18,7 @@ def check_environment():
         from dotenv import load_dotenv
         load_dotenv()
     except ImportError:
-        print("⚠️  python-dotenv not installed, checking environment directly")
+        print("[WW]  python-dotenv not installed, checking environment directly")
 
     required_vars = {
         'ANTHROPIC_API_KEY': 'Claude API access',
@@ -41,18 +41,18 @@ def check_environment():
                 masked = value[:10] + "..." + value[-10:]
             else:
                 masked = value[:5] + "..."
-            print(f"✅ {var}: {masked}")
+            print(f"[OK] {var}: {masked}")
         else:
-            print(f"❌ {var}: NOT SET ({description})")
+            print(f"[!!] {var}: NOT SET ({description})")
             all_good = False
 
     print("\nOptional:")
     for var, description in optional_vars.items():
         value = os.getenv(var)
         if value:
-            print(f"✅ {var}: configured ({description})")
+            print(f"[OK] {var}: configured ({description})")
         else:
-            print(f"⚪ {var}: not set ({description})")
+            print(f"[  ] {var}: not set ({description})")
 
     return all_good
 
@@ -76,9 +76,9 @@ def check_files():
         path = Path(filename)
         if path.exists():
             size = path.stat().st_size
-            print(f"✅ {filename} ({size:,} bytes)")
+            print(f"[OK] {filename} ({size:,} bytes)")
         else:
-            print(f"❌ {filename}: NOT FOUND")
+            print(f"[!!] {filename}: NOT FOUND")
             all_good = False
 
     return all_good
@@ -111,9 +111,9 @@ def check_python_packages():
             else:
                 mod = __import__(package)
                 version = getattr(mod, '__version__', 'unknown')
-            print(f"✅ {package}: {version} ({description})")
+            print(f"[OK] {package}: {version} ({description})")
         except ImportError:
-            print(f"❌ {package}: NOT INSTALLED ({description})")
+            print(f"[!!] {package}: NOT INSTALLED ({description})")
             all_good = False
 
     print("\nOptional:")
@@ -121,9 +121,9 @@ def check_python_packages():
         try:
             mod = __import__(package)
             version = getattr(mod, '__version__', 'unknown')
-            print(f"✅ {package}: {version} ({description})")
+            print(f"[OK] {package}: {version} ({description})")
         except ImportError:
-            print(f"⚪ {package}: not installed ({description})")
+            print(f"[  ] {package}: not installed ({description})")
 
     return all_good
 
@@ -140,35 +140,35 @@ def check_supabase_connection():
         supabase_key = os.getenv('SUPABASE_KEY')
 
         if not supabase_url or not supabase_key:
-            print("❌ Supabase credentials not found in .env")
+            print("[!!] Supabase credentials not found in .env")
             return False
 
-        print(f"🔌 Connecting to: {supabase_url}")
+        print(f"[+] Connecting to: {supabase_url}")
         supabase = create_client(supabase_url, supabase_key)
 
         # Test connection by querying tables
         try:
             result = supabase.table('leads').select('count').limit(1).execute()
-            print("✅ Connection successful!")
-            print("✅ Tables exist and are accessible")
+            print("[OK] Connection successful!")
+            print("[OK] Tables exist and are accessible")
             return True
         except Exception as e:
             error_msg = str(e).lower()
             if 'does not exist' in error_msg or 'relation' in error_msg:
-                print("⚠️  Connection works, but tables not created yet")
-                print("📋 Action needed: Run supabase_schema.sql in Supabase SQL Editor")
+                print("[WW]  Connection works, but tables not created yet")
+                print("[>] Action needed: Run supabase_schema.sql in Supabase SQL Editor")
                 print("   URL: https://supabase.com/dashboard/project/delgvqjilrzjigdovxao/editor")
                 return False
             else:
-                print(f"⚠️  Connection issue: {e}")
+                print(f"[WW]  Connection issue: {e}")
                 return False
 
     except ImportError:
-        print("❌ supabase package not installed")
+        print("[!!] supabase package not installed")
         print("   Run: pip install supabase")
         return False
     except Exception as e:
-        print(f"❌ Connection failed: {e}")
+        print(f"[!!] Connection failed: {e}")
         return False
 
 def check_mcp_config():
@@ -179,22 +179,22 @@ def check_mcp_config():
 
     mcp_file = Path('.vscode/mcp.json')
     if mcp_file.exists():
-        print(f"✅ MCP config exists: {mcp_file}")
+        print(f"[OK] MCP config exists: {mcp_file}")
         try:
             import json
             with open(mcp_file) as f:
                 config = json.load(f)
             if 'mcpServers' in config and 'supabase' in config['mcpServers']:
-                print("✅ Supabase MCP server configured")
+                print("[OK] Supabase MCP server configured")
                 return True
             else:
-                print("⚠️  MCP config exists but Supabase not configured")
+                print("[WW]  MCP config exists but Supabase not configured")
                 return False
         except Exception as e:
-            print(f"⚠️  Could not parse MCP config: {e}")
+            print(f"[WW]  Could not parse MCP config: {e}")
             return False
     else:
-        print("⚪ MCP config not found (optional)")
+        print("[  ] MCP config not found (optional)")
         return True
 
 def main():
@@ -217,20 +217,20 @@ def main():
     print("=" * 60)
 
     for check, passed in results.items():
-        status = "✅ PASS" if passed else "❌ NEEDS ATTENTION"
+        status = "[OK] PASS" if passed else "[!!] NEEDS ATTENTION"
         print(f"{check:15s}: {status}")
 
     all_passed = all(results.values())
 
     print("\n" + "=" * 60)
     if all_passed:
-        print("🎉 ALL CHECKS PASSED!")
+        print("[*] ALL CHECKS PASSED!")
         print("\nYour system is ready to extract leads.")
         print("\nNext steps:")
         print("1. Configure Gmail MCP server (see MCP_SETUP_GUIDE.md)")
         print("2. Test extraction: python extract_all_deals-properly-mcp.py --max 5")
     else:
-        print("⚠️  SOME CHECKS FAILED")
+        print("[WW]  SOME CHECKS FAILED")
         print("\nPlease review the issues above and:")
         print("1. Install missing packages: pip install -r requirements.txt")
         print("2. Create database tables: Run supabase_schema.sql in Supabase")

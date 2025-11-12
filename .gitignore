@@ -1,6 +1,7 @@
 # Sensitive credentials - NEVER commit these files
 credentials.json
 token.json
+.env
 
 # Python
 __pycache__/

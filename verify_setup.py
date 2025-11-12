@@ -1,107 +1,245 @@
 #!/usr/bin/env python3
 """
-SETUP VERIFICATION SCRIPT
-Run this FIRST to check if everything is configured correctly
+Setup Verification Script
+Checks that all components are configured correctly for ACA Lead Extraction
 """
 
-import sys
 import os
+import sys
+from pathlib import Path
 
-def check_python_version():
-    """Check if Python version is 3.7+"""
-    version = sys.version_info
-    if version.major >= 3 and version.minor >= 7:
-        print("✅ Python version OK:", f"{version.major}.{version.minor}.{version.micro}")
-        return True
-    else:
-        print("❌ Python version too old:", f"{version.major}.{version.minor}")
-        print("   Need Python 3.7 or higher")
-        print("   Download from: https://www.python.org/downloads/")
-        return False
+def check_environment():
+    """Check environment variables"""
+    print("=" * 60)
+    print("1. ENVIRONMENT VARIABLES")
+    print("=" * 60)
 
-def check_packages():
-    """Check if required packages are installed"""
-    required = [
-        'google.auth',
-        'google.oauth2',
-        'googleapiclient',
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        print("⚠️  python-dotenv not installed, checking environment directly")
+
+    required_vars = {
+        'ANTHROPIC_API_KEY': 'Claude API access',
+        'SUPABASE_URL': 'Supabase project URL',
+        'SUPABASE_KEY': 'Supabase API key'
+    }
+
+    optional_vars = {
+        'GOOGLE_DRIVE_FOLDER_ID': 'Google Drive uploads',
+        'SLACK_WEBHOOK_URL': 'Slack notifications'
+    }
+
+    all_good = True
+
+    for var, description in required_vars.items():
+        value = os.getenv(var)
+        if value:
+            # Mask the value for security
+            if len(value) > 20:
+                masked = value[:10] + "..." + value[-10:]
+            else:
+                masked = value[:5] + "..."
+            print(f"✅ {var}: {masked}")
+        else:
+            print(f"❌ {var}: NOT SET ({description})")
+            all_good = False
+
+    print("\nOptional:")
+    for var, description in optional_vars.items():
+        value = os.getenv(var)
+        if value:
+            print(f"✅ {var}: configured ({description})")
+        else:
+            print(f"⚪ {var}: not set ({description})")
+
+    return all_good
+
+def check_files():
+    """Check that required files exist"""
+    print("\n" + "=" * 60)
+    print("2. REQUIRED FILES")
+    print("=" * 60)
+
+    required_files = [
+        'extract_all_deals-properly-mcp.py',
+        'mcp_functions.py',
+        'supabase_schema.sql',
+        'requirements.txt',
+        '.env'
     ]
-    
-    missing = []
-    for package in required:
+
+    all_good = True
+
+    for filename in required_files:
+        path = Path(filename)
+        if path.exists():
+            size = path.stat().st_size
+            print(f"✅ {filename} ({size:,} bytes)")
+        else:
+            print(f"❌ {filename}: NOT FOUND")
+            all_good = False
+
+    return all_good
+
+def check_python_packages():
+    """Check that required Python packages are installed"""
+    print("\n" + "=" * 60)
+    print("3. PYTHON PACKAGES")
+    print("=" * 60)
+
+    required_packages = {
+        'anthropic': 'Claude API client',
+        'supabase': 'Supabase client',
+        'tqdm': 'Progress bars',
+        'dotenv': 'Environment variables'
+    }
+
+    optional_packages = {
+        'googleapiclient': 'Google Drive API',
+        'requests': 'HTTP requests (Slack)'
+    }
+
+    all_good = True
+
+    for package, description in required_packages.items():
         try:
-            __import__(package)
-            print(f"✅ Package '{package}' installed")
+            if package == 'dotenv':
+                import dotenv
+                version = getattr(dotenv, '__version__', 'unknown')
+            else:
+                mod = __import__(package)
+                version = getattr(mod, '__version__', 'unknown')
+            print(f"✅ {package}: {version} ({description})")
         except ImportError:
-            print(f"❌ Package '{package}' NOT installed")
-            missing.append(package)
-    
-    if missing:
-        print("\n📦 To install missing packages, run:")
-        print("   pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib")
-        return False
-    
-    return True
+            print(f"❌ {package}: NOT INSTALLED ({description})")
+            all_good = False
 
-def check_credentials():
-    """Check if credentials.json exists"""
-    if os.path.exists('credentials.json'):
-        print("✅ credentials.json found")
-        return True
-    else:
-        print("❌ credentials.json NOT found")
-        print("\n📋 To get credentials.json:")
-        print("   1. Go to: https://console.cloud.google.com")
-        print("   2. Create project and enable Gmail API")
-        print("   3. Create OAuth credentials (Desktop app)")
-        print("   4. Download as credentials.json")
-        print("   5. Place in this directory")
+    print("\nOptional:")
+    for package, description in optional_packages.items():
+        try:
+            mod = __import__(package)
+            version = getattr(mod, '__version__', 'unknown')
+            print(f"✅ {package}: {version} ({description})")
+        except ImportError:
+            print(f"⚪ {package}: not installed ({description})")
+
+    return all_good
+
+def check_supabase_connection():
+    """Test Supabase connection"""
+    print("\n" + "=" * 60)
+    print("4. SUPABASE CONNECTION")
+    print("=" * 60)
+
+    try:
+        from supabase import create_client
+
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_KEY')
+
+        if not supabase_url or not supabase_key:
+            print("❌ Supabase credentials not found in .env")
+            return False
+
+        print(f"🔌 Connecting to: {supabase_url}")
+        supabase = create_client(supabase_url, supabase_key)
+
+        # Test connection by querying tables
+        try:
+            result = supabase.table('leads').select('count').limit(1).execute()
+            print("✅ Connection successful!")
+            print("✅ Tables exist and are accessible")
+            return True
+        except Exception as e:
+            error_msg = str(e).lower()
+            if 'does not exist' in error_msg or 'relation' in error_msg:
+                print("⚠️  Connection works, but tables not created yet")
+                print("📋 Action needed: Run supabase_schema.sql in Supabase SQL Editor")
+                print("   URL: https://supabase.com/dashboard/project/delgvqjilrzjigdovxao/editor")
+                return False
+            else:
+                print(f"⚠️  Connection issue: {e}")
+                return False
+
+    except ImportError:
+        print("❌ supabase package not installed")
+        print("   Run: pip install supabase")
+        return False
+    except Exception as e:
+        print(f"❌ Connection failed: {e}")
         return False
 
-def check_script():
-    """Check if main script exists"""
-    if os.path.exists('extract_all_daniel_hera_deals.py'):
-        print("✅ Main extraction script found")
-        return True
+def check_mcp_config():
+    """Check MCP configuration"""
+    print("\n" + "=" * 60)
+    print("5. MCP CONFIGURATION")
+    print("=" * 60)
+
+    mcp_file = Path('.vscode/mcp.json')
+    if mcp_file.exists():
+        print(f"✅ MCP config exists: {mcp_file}")
+        try:
+            import json
+            with open(mcp_file) as f:
+                config = json.load(f)
+            if 'mcpServers' in config and 'supabase' in config['mcpServers']:
+                print("✅ Supabase MCP server configured")
+                return True
+            else:
+                print("⚠️  MCP config exists but Supabase not configured")
+                return False
+        except Exception as e:
+            print(f"⚠️  Could not parse MCP config: {e}")
+            return False
     else:
-        print("❌ Main script NOT found")
-        print("   Looking for: extract_all_daniel_hera_deals.py")
-        return False
+        print("⚪ MCP config not found (optional)")
+        return True
 
 def main():
-    print("=" * 60)
-    print("  GMAIL EXTRACTOR - SETUP VERIFICATION")
-    print("=" * 60)
-    print("\nChecking your setup...\n")
-    
-    checks = [
-        ("Python Version", check_python_version()),
-        ("Required Packages", check_packages()),
-        ("Credentials File", check_credentials()),
-        ("Extraction Script", check_script()),
-    ]
-    
+    """Run all checks"""
     print("\n" + "=" * 60)
-    print("VERIFICATION RESULTS")
+    print("ACA LEAD EXTRACTION - SETUP VERIFICATION")
     print("=" * 60)
-    
-    all_passed = all(result for _, result in checks)
-    
-    if all_passed:
-        print("\n✅ ✅ ✅ ALL CHECKS PASSED! ✅ ✅ ✅")
-        print("\nYou're ready to run the extraction script!")
-        print("\nNext step:")
-        print("   python extract_all_daniel_hera_deals.py")
-        print("\nor on Mac/Linux:")
-        print("   python3 extract_all_daniel_hera_deals.py")
-    else:
-        print("\n❌ Some checks failed. Please fix the issues above.")
-        print("\nRefer to SETUP_GUIDE.md for detailed instructions.")
-        
-        failed = [name for name, result in checks if not result]
-        print(f"\nFailed checks: {', '.join(failed)}")
-    
-    print("\n" + "=" * 60)
+    print()
 
-if __name__ == "__main__":
-    main()
+    results = {
+        'Environment': check_environment(),
+        'Files': check_files(),
+        'Packages': check_python_packages(),
+        'Supabase': check_supabase_connection(),
+        'MCP': check_mcp_config()
+    }
+
+    print("\n" + "=" * 60)
+    print("SUMMARY")
+    print("=" * 60)
+
+    for check, passed in results.items():
+        status = "✅ PASS" if passed else "❌ NEEDS ATTENTION"
+        print(f"{check:15s}: {status}")
+
+    all_passed = all(results.values())
+
+    print("\n" + "=" * 60)
+    if all_passed:
+        print("🎉 ALL CHECKS PASSED!")
+        print("\nYour system is ready to extract leads.")
+        print("\nNext steps:")
+        print("1. Configure Gmail MCP server (see MCP_SETUP_GUIDE.md)")
+        print("2. Test extraction: python extract_all_deals-properly-mcp.py --max 5")
+    else:
+        print("⚠️  SOME CHECKS FAILED")
+        print("\nPlease review the issues above and:")
+        print("1. Install missing packages: pip install -r requirements.txt")
+        print("2. Create database tables: Run supabase_schema.sql in Supabase")
+        print("3. Check .env file has all required variables")
+        print("\nSee SETUP_INSTRUCTIONS.md for detailed help")
+
+    print("=" * 60)
+
+    return 0 if all_passed else 1
+
+if __name__ == '__main__':
+    sys.exit(main())

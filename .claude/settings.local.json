@@ -13,7 +13,10 @@
       "Bash(git push:*)",
       "Bash(git rm:*)",
       "Bash(git reset:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(pip install:*)",
+      "Bash(rm:*)",
+      "Bash(python verify_setup.py:*)"
     ],
     "deny": [],
     "ask": []

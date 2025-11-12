@@ -1,0 +1,19 @@
+# ACA Lead Extraction System - Python Dependencies
+
+# Core dependencies
+anthropic>=0.21.0
+tqdm>=4.66.0
+
+# Database
+supabase>=2.0.0
+
+# Google Services (optional, for Drive upload)
+google-api-python-client>=2.0.0
+google-auth-httplib2>=0.2.0
+google-auth-oauthlib>=1.0.0
+
+# HTTP requests (optional, for Slack notifications)
+requests>=2.31.0
+
+# Note: Standard library packages (json, os, re, datetime, pathlib, typing, logging, csv, io)
+# are included with Python and don't need to be installed separately

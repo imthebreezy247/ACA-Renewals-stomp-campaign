@@ -6,6 +6,7 @@ tqdm>=4.66.0
 
 # Database
 supabase>=2.0.0
+psycopg2-binary>=2.9.9
 
 # Google Services (optional, for Drive upload)
 google-api-python-client>=2.0.0
@@ -14,6 +15,9 @@ google-auth-oauthlib>=1.0.0
 
 # HTTP requests (optional, for Slack notifications)
 requests>=2.31.0
+
+# Utilities
+python-dotenv>=1.0.0
 
 # Note: Standard library packages (json, os, re, datetime, pathlib, typing, logging, csv, io)
 # are included with Python and don't need to be installed separately

@@ -5,8 +5,104 @@ Executes the SQL schema to create database tables
 """
 
 import os
-import psycopg2
+import socket
+import ssl
+from urllib.parse import parse_qsl, urlparse
+
+import requests
 from dotenv import load_dotenv
+from pg8000.dbapi import DatabaseError, InterfaceError, connect
+
+
+def build_connection_params(db_url: str):
+    """Parse the database URL into pg8000-friendly connection params."""
+    parsed = urlparse(db_url)
+
+    if parsed.scheme not in ('postgresql', 'postgres'):
+        raise ValueError("SUPABASE_DB_URL must start with postgresql:// or postgres://")
+
+    if not parsed.hostname:
+        raise ValueError("Missing host in SUPABASE_DB_URL")
+
+    if not parsed.username or not parsed.password:
+        raise ValueError("Database username/password missing from SUPABASE_DB_URL")
+
+    dbname = parsed.path.lstrip('/') or 'postgres'
+    port = parsed.port or 5432
+
+    query_params = dict(parse_qsl(parsed.query)) if parsed.query else {}
+    try:
+        timeout = int(query_params.get('connect_timeout', 30))
+    except ValueError:
+        timeout = 30
+
+    resolved_host = _resolve_hostaddr(parsed.hostname)
+
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+
+    connect_kwargs = {
+        'database': dbname,
+        'user': parsed.username,
+        'password': parsed.password,
+        'host': resolved_host,
+        'port': port,
+        'timeout': timeout,
+        'ssl_context': ssl_context,
+    }
+
+    return connect_kwargs, {'original_host': parsed.hostname, 'resolved_host': resolved_host}
+
+
+def _resolve_hostaddr(host: str) -> str:
+    """Resolve hostname to an IP address with fallbacks."""
+    try:
+        return _resolve_with_socket(host)
+    except socket.gaierror:
+        fallback = _resolve_with_doh(host)
+        if fallback:
+            return fallback
+        raise RuntimeError(f"Unable to resolve {host}: DNS lookup failed in socket and DoH fallbacks")
+
+
+def _resolve_with_socket(host: str) -> str:
+    addr_info = socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
+    ipv4 = next((info for info in addr_info if info[0] == socket.AF_INET), None)
+    target = ipv4 or addr_info[0]
+    return target[4][0]
+
+
+def _resolve_with_doh(host: str) -> str | None:
+    """Resolve via Google's DNS-over-HTTPS as a fallback."""
+    try:
+        resp = requests.get(
+            'https://dns.google/resolve',
+            params={'name': host, 'type': 'A'},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        for answer in data.get('Answer', []):
+            if answer.get('type') == 1 and answer.get('data'):
+                return answer['data']
+
+        # If no IPv4, attempt IPv6
+        resp_v6 = requests.get(
+            'https://dns.google/resolve',
+            params={'name': host, 'type': 'AAAA'},
+            timeout=5,
+        )
+        resp_v6.raise_for_status()
+        data_v6 = resp_v6.json()
+        for answer in data_v6.get('Answer', []):
+            if answer.get('type') == 28 and answer.get('data'):
+                return answer['data']
+
+    except requests.RequestException:
+        return None
+
+    return None
+
 
 def create_tables():
     """Execute SQL schema to create tables"""
@@ -29,6 +125,8 @@ def create_tables():
     print()
 
     try:
+        conn_params, host_meta = build_connection_params(db_url)
+
         # Read SQL file
         print("[1/3] Reading supabase_schema.sql...")
         with open('supabase_schema.sql', 'r') as f:
@@ -37,7 +135,9 @@ def create_tables():
 
         # Connect to database
         print("[2/3] Connecting to Supabase...")
-        conn = psycopg2.connect(db_url)
+        if host_meta['original_host'] != host_meta['resolved_host']:
+            print(f"      [i] DNS resolved {host_meta['original_host']} -> {host_meta['resolved_host']}")
+        conn = connect(**conn_params)
         conn.autocommit = True
         cursor = conn.cursor()
         print("      [OK] Connected")
@@ -75,7 +175,7 @@ def create_tables():
 
         return True
 
-    except psycopg2.OperationalError as e:
+    except (DatabaseError, InterfaceError) as e:
         print(f"\n[!!] Database connection error: {e}")
         print("\nPossible solutions:")
         print("1. Check that SUPABASE_DB_URL is correct in .env")
@@ -86,6 +186,15 @@ def create_tables():
     except FileNotFoundError:
         print("\n[!!] supabase_schema.sql not found")
         print("Make sure you're running this from the project directory")
+        return False
+
+    except ValueError as e:
+        print(f"\n[!!] Invalid database URL: {e}")
+        return False
+
+    except RuntimeError as e:
+        print(f"\n[!!] Network error: {e}")
+        print("Make sure your network allows outbound access to Supabase and retry.")
         return False
 
     except Exception as e:

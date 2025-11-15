@@ -63,6 +63,25 @@ python extract_all_daniel_hera_deals.py
 
 ---
 
+## 📬 Multi-Agent ACA Renewal Extraction
+
+To pull referrals for every ACA Renewal Stomp agent (Daniel Berman, Jordan Gassner, Richard Odle, Carlos Varona, Miguel Garcia, Charlie Rios, Nick Salamanca), run the production extractor:
+
+1. `pip install -r requirements.txt`
+2. Create a `.env` with `ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`, plus any optional Drive/Slack settings
+3. Place your Google OAuth desktop credentials in this folder as `credentials.json` (the script will create `token.json` on first auth)
+4. Run:
+   ```bash
+   python extract_all_deals-properly-mcp.py --agent danielberman.ushealth@gmail.com --max 25
+   ```
+   * omit `--agent` to sweep every agent inbox in one pass
+   * add `--auto-save` to push high-confidence leads into Supabase automatically
+   * CSV exports land under `exports/`; raw attachments live in `attachments/<thread_id>/`
+
+Repeat the command with different `--agent` emails to generate per-agent spreadsheets, or skip the flag for an “all-agents” sweep.
+
+---
+
 ## ⏱️ How Long Does It Take?
 
 - **Setup (first time only):** 10-15 minutes

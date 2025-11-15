@@ -140,7 +140,7 @@ class LeadExtractor:
         logger.info(f"Gmail query: {query}")
         
         # Execute search using Gmail MCP
-        results = search_gmail_messages(q=query)
+        results = search_gmail_messages(q=query, max_results=max_results)
         
         messages = results.get('messages', [])
         logger.info(f"Found {len(messages)} messages")

@@ -166,14 +166,14 @@ class LeadExtractor:
             result = supabase.table('leads').select('*').eq('client_phone', client_phone).execute()
             
             if result.data:
-                logger.warning(f"⚠️  Duplicate found: {client_phone}")
+                logger.warning(f"WARNING: Duplicate found: {client_phone}")
                 return result.data[0]
             
             # Check by thread_id
             result = supabase.table('leads').select('*').eq('thread_id', thread_id).execute()
             
             if result.data:
-                logger.warning(f"⚠️  Thread already processed: {thread_id}")
+                logger.warning(f"WARNING: Thread already processed: {thread_id}")
                 return result.data[0]
             
             return None
@@ -597,11 +597,11 @@ Use null for missing fields.
                 }
                 supabase.table('attachments').insert(attachment_data).execute()
             
-            logger.info(f"✅ Saved to Supabase: {data['client_name']} (ID: {lead_id})")
+            logger.info(f"Saved to Supabase: {data['client_name']} (ID: {lead_id})")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Failed to save to Supabase: {e}")
+            logger.error(f"ERROR: Failed to save to Supabase: {e}")
             return False
     
     def export_to_csv(self, leads: List[Dict], filename: Optional[str] = None) -> str:
@@ -640,7 +640,7 @@ Use null for missing fields.
                     lead['policy_numbers_str'] = ', '.join(lead['policy_numbers'])
                 writer.writerow(lead)
         
-        logger.info(f"📄 Exported {len(leads)} leads to {filepath}")
+        logger.info(f"Exported {len(leads)} leads to {filepath}")
         return str(filepath)
     
     def process_batch(self, 
@@ -685,7 +685,7 @@ Use null for missing fields.
                     
                     # Skip duplicates in auto-save
                     if lead_data.get('is_duplicate') and auto_save:
-                        logger.info(f"⏭️  Skipping duplicate: {lead_data['client_name']}")
+                        logger.info(f"Skipping duplicate: {lead_data['client_name']}")
                         pbar.update(1)
                         continue
                     
@@ -705,7 +705,7 @@ Use null for missing fields.
         if export_csv and results:
             self.export_to_csv(results)
         
-        logger.info(f"✅ Completed: {len(results)} leads extracted")
+        logger.info(f"Completed: {len(results)} leads extracted")
         return results
     
     def _review_lead(self, data: Dict):

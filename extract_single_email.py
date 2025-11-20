@@ -6,11 +6,22 @@ Allows you to browse and select which email to process
 
 import sys
 import os
+import importlib.util
 
 # Add the current directory to the path so we can import from the main script
 sys.path.insert(0, os.path.dirname(__file__))
 
-from extract_all_deals_properly_mcp import LeadExtractor, AGENT_EMAILS
+# Import from the file with hyphens in the name
+spec = importlib.util.spec_from_file_location(
+    "extract_module",
+    os.path.join(os.path.dirname(__file__), "extract_all_deals-properly-mcp.py")
+)
+extract_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(extract_module)
+
+LeadExtractor = extract_module.LeadExtractor
+AGENT_EMAILS = extract_module.AGENT_EMAILS
+
 from mcp_functions import search_gmail_messages, read_gmail_thread
 import logging
 

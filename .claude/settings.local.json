@@ -18,7 +18,8 @@
       "Bash(rm:*)",
       "Bash(python verify_setup.py:*)",
       "Bash(cat:*)",
-      "Bash(clip)"
+      "Bash(clip)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

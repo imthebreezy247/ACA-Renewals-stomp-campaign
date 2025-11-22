@@ -19,7 +19,8 @@
       "Bash(python verify_setup.py:*)",
       "Bash(cat:*)",
       "Bash(clip)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(python extract_all_deals-properly-mcp.py:*)"
     ],
     "deny": [],
     "ask": []

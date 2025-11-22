@@ -16,8 +16,12 @@ from tqdm import tqdm
 import logging
 import csv
 from io import StringIO
+from dotenv import load_dotenv
 # Import MCP wrapper functions
 from mcp_functions import search_gmail_messages, read_gmail_thread, download_attachment
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configuration
 CONFIG = {
@@ -308,9 +312,28 @@ Use null for missing fields.
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}]
         )
-        
-        result = json.loads(response.content[0].text)
-        return result
+
+        # Extract JSON from response (handle markdown code blocks)
+        response_text = response.content[0].text.strip()
+
+        # Try to extract JSON from markdown code blocks
+        if '```json' in response_text:
+            json_match = re.search(r'```json\s*\n(.*?)\n```', response_text, re.DOTALL)
+            if json_match:
+                response_text = json_match.group(1)
+        elif '```' in response_text:
+            json_match = re.search(r'```\s*\n(.*?)\n```', response_text, re.DOTALL)
+            if json_match:
+                response_text = json_match.group(1)
+
+        # Parse JSON
+        try:
+            result = json.loads(response_text)
+            return result
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON response: {e}")
+            logger.error(f"Response text: {response_text[:500]}")
+            raise
     
     def _extract_attachments(self, thread: Dict, thread_id: str) -> List[Dict]:
         """Extract and download all attachments from thread"""

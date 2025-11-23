@@ -8,6 +8,7 @@ duplicate detection, CSV export, web dashboard
 import json
 import os
 import re
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -718,10 +719,18 @@ Use null for missing fields.
                     elif not auto_save:
                         # Manual review
                         self._review_lead(lead_data)
-                    
+
+                    # Add delay between emails to avoid rate limits
+                    # Skip delay for duplicates to save time
+                    if not lead_data.get('is_duplicate'):
+                        logger.info("Waiting 25 seconds before next email to avoid rate limits...")
+                        time.sleep(25)
+
                 except Exception as e:
                     logger.error(f"Failed to process {thread_id}: {e}")
-                
+                    # Also wait after errors to avoid rapid retries
+                    time.sleep(10)
+
                 pbar.update(1)
         
         # Export to CSV

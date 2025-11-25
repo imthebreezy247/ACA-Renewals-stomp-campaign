@@ -187,6 +187,20 @@ class LeadExtractor:
             logger.error(f"Duplicate check failed: {e}")
             return None
     
+    def get_processed_thread_ids(self) -> set:
+        """Get all thread_ids that have already been processed from Supabase"""
+        try:
+            from supabase import create_client
+            supabase = create_client(CONFIG['supabase_url'], CONFIG['supabase_key'])
+
+            result = supabase.table('leads').select('thread_id').execute()
+            thread_ids = {row['thread_id'] for row in result.data if row.get('thread_id')}
+            logger.info(f"Found {len(thread_ids)} already-processed threads in database")
+            return thread_ids
+        except Exception as e:
+            logger.error(f"Failed to get processed threads: {e}")
+            return set()
+
     def extract_client_from_thread(self, thread_id: str) -> Dict[str, Any]:
         """Extract client data from Gmail thread"""
         logger.info(f"Extracting from thread: {thread_id}")
@@ -688,13 +702,25 @@ Use null for missing fields.
         """
         # Search emails
         messages = self.search_agent_emails(agent_email, after_date, max_results)
-        
+
         if not messages:
             logger.info("No messages found")
             return []
-        
-        logger.info(f"Processing {len(messages)} messages...")
-        
+
+        # Filter out already-processed threads
+        processed_threads = self.get_processed_thread_ids()
+        original_count = len(messages)
+        messages = [msg for msg in messages if msg.get('threadId') not in processed_threads]
+
+        if len(messages) < original_count:
+            logger.info(f"Skipped {original_count - len(messages)} already-processed threads")
+
+        if not messages:
+            logger.info("All messages already processed!")
+            return []
+
+        logger.info(f"Processing {len(messages)} NEW messages...")
+
         # Process each with progress bar
         results = []
         

@@ -1,0 +1,3 @@
+client_name,client_phone,client_email,monthly_premium,aca_premium,annual_income,referring_agent,application_number,household_size,zip_code,date_of_birth,dependents,contact_notes,thread_id,confidence,is_duplicate,extracted_at
+Trey Parks,864-979-7604,tparks005@gmail.com,358.8,,,Daniel Berman,52Z6945680,3,45323,1995-05-18,"Spouse: Bria Parks (DOB: 11/23/1993, Female); Child: Sage Park (DOB: 02/04/2025, Female)",,199810a593d70cca,high,,2025-11-25T09:05:33.918063
+Farmas Gabrail,586-219-7321,fgabrail@hotmail.com,136.11,,,Daniel Berman,52Y0134400,,48310,1977-04-26,,,199525d80703c7d7,high,,2025-11-25T09:06:08.241548

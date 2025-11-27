@@ -75,17 +75,19 @@ BLOCKED_CLIENT_EMAIL_DOMAINS = [
 ]
 
 # Gmail label configuration
-INCLUDED_LABELS = [
-    'aca-leads-to-be-worked-working-deal',
+DEFAULT_INCLUDED_LABELS = [
     'processed-sold-deals-using-automation-to-final-label',
-    'aca-leads-to-be-worked-working-deal-2nd-attempt',
     'sold-deal',
+    'aca-leads-to-be-worked-working-deal',
+    'aca-leads-to-be-worked-working-deal-2nd-attempt',
+    'aca-leads-to-be-worked-working-deal-3rd-attempt',
     'sold-deal-paid---sold-deals',
-    'ron-deals--aca'
+    'ron-deals--aca',
 ]
 
 EXCLUDED_LABELS = [
-    'aca-leads-to-be-worked-dead-deal'
+    'aca-leads-to-be-worked-dead-deal',
+    'all-wraps-to-be-worked'  # explicitly exclude noisy bulk wrap label
 ]
 
 
@@ -103,7 +105,8 @@ class LeadExtractor:
     def search_agent_emails(self, 
                            agent_email: Optional[str] = None,
                            after_date: Optional[str] = None,
-                           max_results: int = 100) -> List[Dict]:
+                           max_results: int = 100,
+                           included_labels: Optional[List[str]] = None) -> List[Dict]:
         """
         Search Gmail for agent referral emails with label filtering
         
@@ -131,7 +134,8 @@ class LeadExtractor:
             query_parts.append(f"after:{after_date}")
         
         # Include specific labels (OR logic)
-        label_queries = [f"label:{label}" for label in INCLUDED_LABELS]
+        labels_to_use = included_labels or DEFAULT_INCLUDED_LABELS
+        label_queries = [f"label:{label}" for label in labels_to_use]
         query_parts.append(f"({' OR '.join(label_queries)})")
         
         # Exclude dead deals
@@ -913,8 +917,15 @@ def main():
     parser.add_argument('--auto-save', action='store_true', help='Auto-save high confidence leads')
     parser.add_argument('--no-csv', action='store_true', help='Skip CSV export')
     parser.add_argument('--report-only', action='store_true', help='Only show counts (total/processed/new) without extracting or saving')
+    parser.add_argument('--export-all-leads', action='store_true', help='Export Supabase leads to a CSV and exit')
+    parser.add_argument('--export-path', default='exports/leads_rows.csv', help='Destination CSV path for --export-all-leads')
+    parser.add_argument('--export-agent-email', help='Agent email to filter exported leads (e.g., danielberman.ushealth@gmail.com)')
     
     args = parser.parse_args()
+    
+    if args.export_all_leads:
+        export_all_leads(args.export_path, args.export_agent_email)
+        return
     
     extractor = LeadExtractor()
     extractor.process_batch(
@@ -927,5 +938,70 @@ def main():
     )
 
 
+def export_all_leads(csv_path: str, agent_email: Optional[str] = None):
+    """
+    Export all leads from Supabase to a single CSV file.
+    """
+    from supabase import create_client
+
+    supabase_url = CONFIG['supabase_url']
+    supabase_key = CONFIG['supabase_key']
+
+    if not supabase_url or not supabase_key:
+        logger.error("Supabase credentials missing; set SUPABASE_URL and SUPABASE_KEY.")
+        return
+
+    supabase = create_client(supabase_url, supabase_key)
+
+    try:
+        query = supabase.table('leads').select('*')
+
+        # If agent_email specified, filter on referring_agent using the mapped display name
+        if agent_email:
+            agent_name = AGENT_EMAILS.get(agent_email, agent_email)
+            query = query.eq('referring_agent', agent_name)
+
+        result = query.execute()
+        rows = result.data or []
+    except Exception as e:
+        logger.error(f"Failed to fetch leads from Supabase: {e}")
+        return
+
+    if not rows:
+        logger.info("No leads found in Supabase; nothing to export.")
+        return
+
+    # Ensure export directory exists
+    export_path = Path(csv_path)
+    export_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Fixed column order to match existing leads_rows.csv
+    fieldnames = [
+        'id', 'client_name', 'client_phone', 'client_email',
+        'monthly_premium', 'aca_premium', 'annual_income',
+        'referring_agent', 'application_number', 'policy_numbers',
+        'household_size', 'zip_code', 'date_of_birth', 'dependents',
+        'contact_notes', 'thread_id', 'confidence', 'drive_folder_url',
+        'is_duplicate', 'status', 'extracted_at', 'created_at', 'updated_at'
+    ]
+
+    with open(export_path, 'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames, extrasaction='ignore')
+        writer.writeheader()
+        for row in rows:
+            # Normalize list/dict fields to strings
+            for key, value in list(row.items()):
+                if isinstance(value, (list, dict)):
+                    row[key] = json.dumps(value)
+            writer.writerow(row)
+
+    if agent_email:
+        agent_name = AGENT_EMAILS.get(agent_email, agent_email)
+        logger.info(f"Exported {len(rows)} leads for agent '{agent_name}' to {export_path}")
+    else:
+        logger.info(f"Exported {len(rows)} leads to {export_path}")
+
+
 if __name__ == '__main__':
     main()
+   

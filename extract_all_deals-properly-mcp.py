@@ -236,9 +236,14 @@ class LeadExtractor:
         # Clean and validate
         client_data = self._clean_extraction(client_data)
         
-        # Send Slack notification for high-value leads
-        if (client_data.get('monthly_premium', 0) >= CONFIG['high_value_threshold'] 
-            and not client_data.get('is_duplicate')):
+        # Send Slack notification for high-value leads (handle missing premiums safely)
+        monthly_premium = client_data.get('monthly_premium')
+        try:
+            monthly_value = float(monthly_premium) if monthly_premium is not None else 0.0
+        except (TypeError, ValueError):
+            monthly_value = 0.0
+
+        if monthly_value >= CONFIG['high_value_threshold'] and not client_data.get('is_duplicate'):
             self._send_slack_notification(client_data)
         
         logger.info(f"Extracted: {client_data.get('client_name', 'Unknown')}")
@@ -686,7 +691,8 @@ Use null for missing fields.
                      after_date: Optional[str] = None,
                      max_results: int = 100,
                      auto_save: bool = False,
-                     export_csv: bool = True) -> List[Dict]:
+                     export_csv: bool = True,
+                     report_only: bool = False) -> List[Dict]:
         """
         Process a batch of emails with all features
         
@@ -717,6 +723,12 @@ Use null for missing fields.
 
         if not messages:
             logger.info("All messages already processed!")
+            if report_only:
+                logger.info(f"[REPORT] Total found: {original_count} | Already processed (in DB): {original_count} | New to process: 0")
+            return []
+
+        if report_only:
+            logger.info(f"[REPORT] Total found: {original_count} | Already processed (in DB): {original_count - len(messages)} | New to process: {len(messages)}")
             return []
 
         logger.info(f"Processing {len(messages)} NEW messages...")
@@ -900,6 +912,7 @@ def main():
     parser.add_argument('--max', type=int, default=100, help='Max results')
     parser.add_argument('--auto-save', action='store_true', help='Auto-save high confidence leads')
     parser.add_argument('--no-csv', action='store_true', help='Skip CSV export')
+    parser.add_argument('--report-only', action='store_true', help='Only show counts (total/processed/new) without extracting or saving')
     
     args = parser.parse_args()
     
@@ -909,7 +922,8 @@ def main():
         after_date=args.after,
         max_results=args.max,
         auto_save=args.auto_save,
-        export_csv=not args.no_csv
+        export_csv=not args.no_csv,
+        report_only=args.report_only
     )
 
 

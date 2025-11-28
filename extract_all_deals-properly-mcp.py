@@ -87,7 +87,7 @@ DEFAULT_INCLUDED_LABELS = [
 
 EXCLUDED_LABELS = [
     'aca-leads-to-be-worked-dead-deal',
-    'all-wraps-to-be-worked'  # explicitly exclude noisy bulk wrap label
+    'all-wraps-to-be-worked'  # explicitly exclude noisy bulk wrap label by default
 ]
 
 
@@ -105,8 +105,11 @@ class LeadExtractor:
     def search_agent_emails(self, 
                            agent_email: Optional[str] = None,
                            after_date: Optional[str] = None,
+                           before_date: Optional[str] = None,
                            max_results: int = 100,
-                           included_labels: Optional[List[str]] = None) -> List[Dict]:
+                           included_labels: Optional[List[str]] = None,
+                           allow_drive: bool = False,
+                           ignore_default_excludes: bool = False) -> List[Dict]:
         """
         Search Gmail for agent referral emails with label filtering
         
@@ -132,6 +135,8 @@ class LeadExtractor:
         
         if after_date:
             query_parts.append(f"after:{after_date}")
+        if before_date:
+            query_parts.append(f"before:{before_date}")
         
         # Include specific labels (OR logic)
         labels_to_use = included_labels or DEFAULT_INCLUDED_LABELS
@@ -139,11 +144,15 @@ class LeadExtractor:
         query_parts.append(f"({' OR '.join(label_queries)})")
         
         # Exclude dead deals
-        for excluded in EXCLUDED_LABELS:
-            query_parts.append(f"-label:{excluded}")
+        if not ignore_default_excludes:
+            for excluded in EXCLUDED_LABELS:
+                query_parts.append(f"-label:{excluded}")
         
         # Filter for attachments
-        query_parts.append("has:attachment")
+        if allow_drive:
+            query_parts.append("(has:attachment OR has:drive)")
+        else:
+            query_parts.append("has:attachment")
         
         query = " ".join(query_parts)
         logger.info(f"Gmail query: {query}")
@@ -205,7 +214,7 @@ class LeadExtractor:
             logger.error(f"Failed to get processed threads: {e}")
             return set()
 
-    def extract_client_from_thread(self, thread_id: str) -> Dict[str, Any]:
+    def extract_client_from_thread(self, thread_id: str, preloaded_thread: Optional[Dict] = None, agent_email: Optional[str] = None) -> Dict[str, Any]:
         """Extract client data from Gmail thread"""
         logger.info(f"Extracting from thread: {thread_id}")
         
@@ -213,13 +222,17 @@ class LeadExtractor:
         # Note: We'll check again after extraction when we have the phone number
         
         # Read full thread
-        thread = read_gmail_thread(
+        thread = preloaded_thread or read_gmail_thread(
             thread_id=thread_id,
             include_full_messages=True
         )
         
         # Extract client data using Claude
         client_data = self._extract_with_claude(thread, thread_id)
+
+        # Ensure referring agent is set (prefer extraction, fallback to provided agent_email)
+        if agent_email and not client_data.get('referring_agent'):
+            client_data['referring_agent'] = AGENT_EMAILS.get(agent_email, agent_email)
         
         # Check duplicate by phone
         if client_data.get('client_phone'):
@@ -693,10 +706,15 @@ Use null for missing fields.
     def process_batch(self, 
                      agent_email: Optional[str] = None,
                      after_date: Optional[str] = None,
+                     before_date: Optional[str] = None,
                      max_results: int = 100,
                      auto_save: bool = False,
                      export_csv: bool = True,
-                     report_only: bool = False) -> List[Dict]:
+                     report_only: bool = False,
+                     included_labels: Optional[List[str]] = None,
+                     skip_multi_message_threads: bool = False,
+                     allow_drive: bool = False,
+                     ignore_default_excludes: bool = False) -> List[Dict]:
         """
         Process a batch of emails with all features
         
@@ -711,7 +729,15 @@ Use null for missing fields.
             List of extracted leads
         """
         # Search emails
-        messages = self.search_agent_emails(agent_email, after_date, max_results)
+        messages = self.search_agent_emails(
+            agent_email,
+            after_date,
+            before_date,
+            max_results,
+            included_labels,
+            allow_drive,
+            ignore_default_excludes
+        )
 
         if not messages:
             logger.info("No messages found")
@@ -745,8 +771,19 @@ Use null for missing fields.
                 thread_id = msg.get('threadId')
                 
                 try:
+                    # Read thread early to optionally skip multi-message conversations
+                    thread = read_gmail_thread(
+                        thread_id=thread_id,
+                        include_full_messages=True
+                    )
+
+                    if skip_multi_message_threads and thread.get('messages') and len(thread['messages']) > 1:
+                        logger.info(f"Skipping thread {thread_id} (multi-message conversation)")
+                        pbar.update(1)
+                        continue
+
                     # Extract
-                    lead_data = self.extract_client_from_thread(thread_id)
+                    lead_data = self.extract_client_from_thread(thread_id, preloaded_thread=thread, agent_email=agent_email)
                     results.append(lead_data)
                     
                     # Skip duplicates in auto-save
@@ -913,6 +950,7 @@ def main():
     parser = argparse.ArgumentParser(description='Extract ACA leads from Gmail')
     parser.add_argument('--agent', help='Filter by agent email')
     parser.add_argument('--after', help='Filter by date (YYYY/MM/DD)')
+    parser.add_argument('--before', help='Filter before date (YYYY/MM/DD)')
     parser.add_argument('--max', type=int, default=100, help='Max results')
     parser.add_argument('--auto-save', action='store_true', help='Auto-save high confidence leads')
     parser.add_argument('--no-csv', action='store_true', help='Skip CSV export')
@@ -920,6 +958,10 @@ def main():
     parser.add_argument('--export-all-leads', action='store_true', help='Export Supabase leads to a CSV and exit')
     parser.add_argument('--export-path', default='exports/leads_rows.csv', help='Destination CSV path for --export-all-leads')
     parser.add_argument('--export-agent-email', help='Agent email to filter exported leads (e.g., danielberman.ushealth@gmail.com)')
+    parser.add_argument('--labels', help='Comma-separated Gmail labels to include (overrides defaults)')
+    parser.add_argument('--skip-multi-message-threads', action='store_true', help='Skip threads with more than one message')
+    parser.add_argument('--allow-drive', action='store_true', help='Include has:drive in addition to has:attachment')
+    parser.add_argument('--ignore-default-excludes', action='store_true', help='Do not add default excluded labels (e.g., all-wraps-to-be-worked)')
     
     args = parser.parse_args()
     
@@ -927,14 +969,23 @@ def main():
         export_all_leads(args.export_path, args.export_agent_email)
         return
     
+    labels_override = None
+    if args.labels:
+        labels_override = [label.strip() for label in args.labels.split(',') if label.strip()]
+
     extractor = LeadExtractor()
     extractor.process_batch(
         agent_email=args.agent,
         after_date=args.after,
+        before_date=args.before,
         max_results=args.max,
         auto_save=args.auto_save,
         export_csv=not args.no_csv,
-        report_only=args.report_only
+        report_only=args.report_only,
+        included_labels=labels_override,
+        skip_multi_message_threads=args.skip_multi_message_threads,
+        allow_drive=args.allow_drive,
+        ignore_default_excludes=args.ignore_default_excludes
     )
 
 
@@ -1004,4 +1055,3 @@ def export_all_leads(csv_path: str, agent_email: Optional[str] = None):
 
 if __name__ == '__main__':
     main()
-   

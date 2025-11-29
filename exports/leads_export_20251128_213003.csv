@@ -1,0 +1,25 @@
+client_name,client_phone,client_email,monthly_premium,aca_premium,annual_income,referring_agent,application_number,household_size,zip_code,date_of_birth,dependents,contact_notes,thread_id,confidence,is_duplicate,extracted_at
+Patricia Hales,706-765-8477,,,,18000,Jordan Gassner,,,,,,,1999a5c2e23df058,high,,2025-11-29T02:10:09.767568
+Lashawn Mcconnell,901-558-4405,,,,30000,Jordan Gassner,,,,,,,1999a5c2d94e2532,high,,2025-11-29T02:10:43.222543
+Lafonda Johnson,843-331-6961,,,,55000,Jordan Gassner,,6,,,,Finally did their vcall,199883774b097ce9,high,,2025-11-29T02:11:15.930664
+Kathy Fuchs,402-812-2406,,,,25000,Jordan Gassner,,,,,,called / texted,19985db821184582,high,,2025-11-29T02:11:49.190865
+Jennifer Mammen,541-806-3272,,,,40000,Jordan Gassner,,3,,,,called / texted,19985d7ccda84975,high,,2025-11-29T02:12:22.547814
+Deanna Herring,616-215-4680,,,,19000,Jordan Gassner,,,,,,,19980d9021a5b932,high,,2025-11-29T02:12:55.486901
+Jennifer James,910-540-0280,,,,24000,Jordan Gassner,,,,,,"Previously sent on 09/10, client not responding",1994faaf3f1d133a,high,,2025-11-29T02:13:29.542918
+Sandra Vidrine,304-532-9594,,,,25000,Jordan Gassner,,2,,,,Plan needs to be switched - original plan cannot be processed,1992fab065e43c44,high,,2025-11-29T02:14:02.726050
+Sharetta Herder,919-738-4801,,,,22000,Jordan Gassner,,,,,,"Client cursed out agent, phone goes straight to voicemail, not answering calls or texts",199109dd30ac8ef7,high,,2025-11-29T02:14:38.655600
+Kim Shutler,419-564-2143,,,,22000,Jordan Gassner,,,,,,,198fb3d2756e56af,high,,2025-11-29T02:16:25.798692
+Tori Wyatt,816-392-8388,,,,25000,Jordan Gassner,,,,,,,198fb3d20b37fb9c,high,,2025-11-29T02:16:58.888727
+Lawrence Grobes,847-345-9274,,,,25000,Jordan Gassner,,,,,,Client not replying to texts,198f6c76933fefbe,high,,2025-11-29T02:17:33.075012
+Mendy Barker,864-871-8525,,,,20000,Jordan Gassner,,,,,,Skip Bright Healthcare plan - cannot process this plan type,198f5942ad13c965,high,,2025-11-29T02:19:09.114077
+Lori Ruch,832-610-1229,,,,23000,Jordan Gassner,,,,,,texted for deal but tanya is doing it,198f0e98b71d144e,high,,2025-11-29T02:19:44.211489
+Lori Ruch,832-610-1229,,,,23000,Jordan Gassner,,,,,,Tanya is handling this case,198f0e98b71d144e,high,True,2025-11-29T02:21:12.230013
+James Larrimore,305-244-5415,,,,23000,Jordan Gassner,,,,,,,198f0721be3a9c7b,high,,2025-11-29T02:22:08.057548
+Lisa Duncan,618-499-1654,,,,22000,Jordan Gassner,,,,,,,198c749bd2866b66,high,,2025-11-29T02:23:10.156702
+Shawishi and Earyle,804-274-9616,,,,60000,Jordan Gassner,,,,,,,1989efbc3baf8b47,high,,2025-11-29T02:23:42.956164
+Ambar Campos,559-530-1037,,,,30000,Jordan Gassner,,,,,Family,,1989efba2189be97,high,,2025-11-29T02:24:16.856010
+Casey Ackley,618-731-3890,,,,22000,Jordan Gassner,,,,,,Client won't get back to agent regarding signing up on the ACA plan,198603b6b6730218,high,,2025-11-29T02:24:51.239565
+Frances Hindman,601-966-2741,,,,30000,Jordan Gassner,,,,,,"Tried to get a good time to call, but they didn't give me a specific time. Client specifically wanted Cigna coverage.",1985615408759461,high,,2025-11-29T02:25:26.726445
+Frances Hindman,601-966-2741,,,,30000,Jordan Gassner,,,,,,"Tried to get a good time to call, but they didn't give a specific time. Client specifically wants Cigna coverage.",1985615408759461,high,True,2025-11-29T02:26:58.515986
+Candace Vitale,231-683-3535,,205.84,,35000,Jordan Gassner,,4,49307,1978-03-14,"Nathaniel Nunley (Son, 8/21/09), Dre Nunley (Son, 8/21/09), Rusty Nunley (Son, 6/14/08)","They added the kid Rusty today and don't have the updated price yet, but the prior was $205.84. They have Dental no vision. Address: 15518 Mc Kinley Rd, Big Rapids, MI, 49307",196abd64552b06ee,high,,2025-11-29T02:28:39.045715
+Casey Widboom,,,,,,Jordan Gassner,,,,,,Text before calling - dental plan signup for Aetna PPO plan,1968c1e73d0078ec,high,,2025-11-29T02:29:13.128746

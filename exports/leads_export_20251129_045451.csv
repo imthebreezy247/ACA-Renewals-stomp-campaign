@@ -1,0 +1,4 @@
+client_name,client_phone,client_email,monthly_premium,aca_premium,annual_income,referring_agent,application_number,household_size,zip_code,date_of_birth,dependents,contact_notes,thread_id,confidence,is_duplicate,extracted_at
+Haleigh Moore,407-430-3617,haymoore23@gmail.com,87.76,,,Charlie Rios,3415248,1,30115,1999-10-08,,,1997deabe1698fd5,high,,2025-11-29T09:47:40.254357
+HAILIE MARTINEZ,317-628-8861,hailmart69@icloud.com,114.51,,,Charlie Rios,3315476,1,27410,2000-07-25,,,197c1c79616f58a4,high,,2025-11-29T09:49:47.226201
+MERON TUMEBO,469-686-4929,meronwoldeyohanes@gmail.com,120.45,,,Charlie Rios,3209502,2,75189,1989-03-11,"ANAMUEL DOLICHO (son, DOB: 06/29/2019)",Application sold and paid - texted and called client,195ed62581d003f2,high,,2025-11-29T09:52:31.003330

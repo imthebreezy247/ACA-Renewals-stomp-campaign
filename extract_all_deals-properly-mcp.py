@@ -802,8 +802,8 @@ Use null for missing fields.
                     # Add delay between emails to avoid rate limits
                     # Skip delay for duplicates to save time
                     if not lead_data.get('is_duplicate'):
-                        logger.info("Waiting 25 seconds before next email to avoid rate limits...")
-                        time.sleep(25)
+                        logger.info("Waiting 60 seconds before next email to avoid rate limits...")
+                        time.sleep(60)
 
                 except Exception as e:
                     logger.error(f"Failed to process {thread_id}: {e}")

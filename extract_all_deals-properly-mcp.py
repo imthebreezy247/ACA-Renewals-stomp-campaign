@@ -93,15 +93,33 @@ EXCLUDED_LABELS = [
 
 class LeadExtractor:
     """Main class for extracting leads from Gmail with all features"""
-    
+
+    # Minimum seconds between Claude API calls to stay under rate limits
+    # With 30k tokens/min limit and ~15-20k tokens per request, need ~45-60s between calls
+    MIN_API_CALL_INTERVAL = 60
+
     def __init__(self):
-        self.anthropic = Anthropic(api_key=CONFIG['anthropic_api_key'])
+        # Configure Anthropic client - disable automatic retries so we can handle rate limits properly
+        self.anthropic = Anthropic(
+            api_key=CONFIG['anthropic_api_key'],
+            max_retries=0,  # Disable SDK retries - we handle rate limits ourselves
+        )
         self.attachments_dir = Path(CONFIG['attachments_dir'])
         self.attachments_dir.mkdir(exist_ok=True)
         self.csv_export_dir = Path(CONFIG['csv_export_dir'])
         self.csv_export_dir.mkdir(exist_ok=True)
+        self._last_api_call = 0  # Track last API call timestamp
         logger.info("LeadExtractor initialized")
-    
+
+    def _wait_for_rate_limit(self):
+        """Enforce minimum interval between Claude API calls to respect rate limits"""
+        elapsed = time.time() - self._last_api_call
+        if elapsed < self.MIN_API_CALL_INTERVAL:
+            wait_time = self.MIN_API_CALL_INTERVAL - elapsed
+            logger.info(f"Rate limit: waiting {wait_time:.1f}s before next API call...")
+            time.sleep(wait_time)
+        self._last_api_call = time.time()
+
     def search_agent_emails(self, 
                            agent_email: Optional[str] = None,
                            after_date: Optional[str] = None,
@@ -266,9 +284,68 @@ class LeadExtractor:
         logger.info(f"Extracted: {client_data.get('client_name', 'Unknown')}")
         return client_data
     
+    def _truncate_thread_for_claude(self, thread: Dict, max_chars: int = 400000) -> Dict:
+        """
+        Truncate thread content to stay under Claude's token limit.
+        ~4 chars per token, so 400k chars ≈ 100k tokens (safe margin under 200k limit)
+        """
+        thread_json = json.dumps(thread, indent=2)
+
+        if len(thread_json) <= max_chars:
+            return thread
+
+        logger.warning(f"Thread too large ({len(thread_json)} chars), truncating...")
+
+        # Create truncated copy
+        truncated = thread.copy()
+        messages = truncated.get('messages', [])
+
+        if messages:
+            # Keep first and last message, truncate middle ones
+            truncated_messages = []
+
+            for i, msg in enumerate(messages):
+                msg_copy = msg.copy()
+                payload = msg_copy.get('payload', {})
+
+                # Truncate large body content
+                if 'body' in payload and payload['body'].get('data'):
+                    body_data = payload['body']['data']
+                    if len(body_data) > 10000:
+                        msg_copy['payload'] = payload.copy()
+                        msg_copy['payload']['body'] = {'data': body_data[:10000] + '...[TRUNCATED]'}
+
+                # Truncate parts
+                if 'parts' in payload:
+                    truncated_parts = []
+                    for part in payload['parts']:
+                        part_copy = part.copy()
+                        if 'body' in part_copy and part_copy['body'].get('data'):
+                            part_data = part_copy['body']['data']
+                            if len(part_data) > 10000:
+                                part_copy['body'] = {'data': part_data[:10000] + '...[TRUNCATED]'}
+                        truncated_parts.append(part_copy)
+                    msg_copy['payload'] = msg_copy.get('payload', {}).copy()
+                    msg_copy['payload']['parts'] = truncated_parts
+
+                truncated_messages.append(msg_copy)
+
+            truncated['messages'] = truncated_messages
+
+        # Final check - if still too large, keep only first message
+        final_json = json.dumps(truncated, indent=2)
+        if len(final_json) > max_chars and messages:
+            logger.warning("Still too large, keeping only first message")
+            truncated['messages'] = [truncated['messages'][0]] if truncated['messages'] else []
+
+        return truncated
+
     def _extract_with_claude(self, thread: Dict, thread_id: str) -> Dict:
         """Use Claude to extract structured client data"""
-        
+
+        # Truncate thread to avoid token limit errors
+        truncated_thread = self._truncate_thread_for_claude(thread)
+
         prompt = f"""
 Extract CLIENT information from this agent referral email.
 
@@ -319,7 +396,7 @@ CRITICAL RULES:
 - For families, extract PRIMARY applicant (usually first mentioned adult)
 
 EMAIL THREAD:
-{json.dumps(thread, indent=2)}
+{json.dumps(truncated_thread, indent=2)}
 
 Return ONLY valid JSON:
 {{
@@ -343,12 +420,30 @@ Return ONLY valid JSON:
 
 Use null for missing fields.
 """
-        
-        response = self.anthropic.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=2000,
-            messages=[{"role": "user", "content": prompt}]
-        )
+
+        # Retry logic for rate limits (max 3 attempts)
+        max_retries = 3
+        for attempt in range(max_retries):
+            # Wait for rate limit before making API call
+            self._wait_for_rate_limit()
+
+            try:
+                response = self.anthropic.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=2000,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                break  # Success, exit retry loop
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'rate_limit' in error_str.lower():
+                    if attempt < max_retries - 1:
+                        wait_time = 65 * (attempt + 1)  # 65s, 130s, 195s
+                        logger.warning(f"Rate limit hit (attempt {attempt + 1}/{max_retries}), waiting {wait_time}s...")
+                        time.sleep(wait_time)
+                        self._last_api_call = 0  # Reset timer to force wait
+                        continue
+                raise  # Re-raise if not rate limit or max retries reached
 
         # Extract JSON from response (handle markdown code blocks)
         response_text = response.content[0].text.strip()
@@ -612,9 +707,18 @@ Use null for missing fields.
     
     def save_to_supabase(self, data: Dict) -> bool:
         """Save extracted lead to Supabase"""
+
+        # Check required fields before attempting to save
+        required_fields = ['client_name', 'client_phone']
+        missing = [f for f in required_fields if not data.get(f)]
+
+        if missing:
+            logger.warning(f"Skipping save - missing required fields: {missing} for lead: {data.get('client_name', 'Unknown')}")
+            return False
+
         try:
             from supabase import create_client
-            
+
             supabase = create_client(CONFIG['supabase_url'], CONFIG['supabase_key'])
             
             # Prepare data for insert
@@ -799,16 +903,23 @@ Use null for missing fields.
                         # Manual review
                         self._review_lead(lead_data)
 
-                    # Add delay between emails to avoid rate limits
-                    # Skip delay for duplicates to save time
-                    if not lead_data.get('is_duplicate'):
-                        logger.info("Waiting 60 seconds before next email to avoid rate limits...")
-                        time.sleep(60)
+                    # Note: Rate limiting is now handled by _wait_for_rate_limit() before each API call
 
                 except Exception as e:
+                    error_str = str(e)
                     logger.error(f"Failed to process {thread_id}: {e}")
-                    # Also wait after errors to avoid rapid retries
-                    time.sleep(10)
+
+                    # Check if it's a rate limit error - wait longer
+                    if '429' in error_str or 'rate_limit' in error_str.lower():
+                        logger.info("Rate limit hit - waiting 65 seconds before next request...")
+                        time.sleep(65)  # Wait full minute + buffer for rate limit reset
+                    elif 'prompt is too long' in error_str.lower():
+                        logger.warning(f"Thread {thread_id} exceeds token limit even after truncation - skipping")
+                        time.sleep(5)  # Brief pause, skip this thread
+                    else:
+                        # Other errors - still wait to avoid rapid fire
+                        logger.info("Waiting 30 seconds after error...")
+                        time.sleep(30)
 
                 pbar.update(1)
         

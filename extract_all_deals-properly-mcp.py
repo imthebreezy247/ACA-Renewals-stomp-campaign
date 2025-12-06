@@ -275,7 +275,7 @@ class LeadExtractor:
             combined = combined[:max_chars] + "...(truncated)"
         return combined
 
-    def _build_thread_summary(self, thread: Dict, max_messages: int = 5, body_limit: int = 4000) -> List[Dict[str, Any]]:
+    def _build_thread_summary(self, thread: Dict, max_messages: int = 2, body_limit: int = 1200) -> List[Dict[str, Any]]:
         """
         Build a trimmed thread summary for the model (avoid full raw payloads to reduce token bloat).
         Includes headers, snippet, and truncated plain-text body per message.
@@ -355,20 +355,17 @@ class LeadExtractor:
         Build a trimmed thread summary string for the model to prevent huge prompts.
         Keeps only headers/snippet/body (plain text) for the most recent messages.
         """
-        # Start with a modest slice
-        summary = self._build_thread_summary(thread, max_messages=5, body_limit=4000)
+        # Start aggressively small
+        summary = self._build_thread_summary(thread, max_messages=2, body_limit=1200)
         summary_json = json.dumps(summary, indent=2)
 
-        # If still large, shrink aggressively
-        if len(summary_json) > 20000:
-            summary = self._build_thread_summary(thread, max_messages=3, body_limit=1200)
-            summary_json = json.dumps(summary, indent=2)
-        if len(summary_json) > 20000:
+        # If still large, shrink to a single message
+        if len(summary_json) > 12000:
             summary = self._build_thread_summary(thread, max_messages=1, body_limit=800)
             summary_json = json.dumps(summary, indent=2)
-        if len(summary_json) > 20000:
+        if len(summary_json) > 12000:
             logger.warning(f"Thread too large ({len(summary_json)} chars) even after trimming; truncating string for prompt.")
-            summary_json = summary_json[:20000] + "...(truncated)"
+            summary_json = summary_json[:12000] + "...(truncated)"
 
         return summary_json
 
@@ -883,6 +880,17 @@ Use null for missing fields.
         processed_threads = self.get_processed_thread_ids()
         original_count = len(messages)
         messages = [msg for msg in messages if msg.get('threadId') not in processed_threads]
+
+        # Deduplicate within this run by threadId to avoid reprocessing same thread twice
+        seen = set()
+        deduped = []
+        for msg in messages:
+            tid = msg.get('threadId')
+            if not tid or tid in seen:
+                continue
+            seen.add(tid)
+            deduped.append(msg)
+        messages = deduped
 
         if len(messages) < original_count:
             logger.info(f"Skipped {original_count - len(messages)} already-processed threads")

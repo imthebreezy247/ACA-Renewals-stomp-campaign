@@ -9,9 +9,11 @@ import json
 import os
 import re
 import time
+import base64
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
+from html import unescape
 from anthropic import Anthropic
 from tqdm import tqdm
 import logging
@@ -232,6 +234,70 @@ class LeadExtractor:
             logger.error(f"Failed to get processed threads: {e}")
             return set()
 
+    def _get_header_value(self, message: Dict, name: str) -> Optional[str]:
+        """Helper to fetch a header value from a Gmail message."""
+        headers = message.get('payload', {}).get('headers', [])
+        for header in headers:
+            if header.get('name', '').lower() == name.lower():
+                return header.get('value')
+        return None
+
+    def _decode_message_text(self, payload: Dict, max_chars: int = 4000) -> Optional[str]:
+        """
+        Decode text parts from a Gmail message payload and return a truncated plain-text body.
+        """
+        texts: List[str] = []
+
+        def walk(part: Dict):
+            if not part:
+                return
+            mime_type = part.get('mimeType', '')
+            body = part.get('body', {})
+            data = body.get('data')
+            if data and mime_type.startswith('text/'):
+                try:
+                    decoded = base64.urlsafe_b64decode(data.encode('utf-8')).decode('utf-8', errors='ignore')
+                    if mime_type == 'text/html':
+                        decoded = re.sub(r'<[^>]+>', ' ', decoded)
+                    decoded = unescape(decoded)
+                    texts.append(decoded)
+                except Exception:
+                    pass
+            for child in part.get('parts') or []:
+                walk(child)
+
+        walk(payload)
+        combined = "\n".join(texts).strip()
+        if not combined:
+            return None
+        combined = re.sub(r'\s+', ' ', combined)
+        if len(combined) > max_chars:
+            combined = combined[:max_chars] + "...(truncated)"
+        return combined
+
+    def _build_thread_summary(self, thread: Dict, max_messages: int = 5, body_limit: int = 4000) -> List[Dict[str, Any]]:
+        """
+        Build a trimmed thread summary for the model (avoid full raw payloads to reduce token bloat).
+        Includes headers, snippet, and truncated plain-text body per message.
+        """
+        summary = []
+        messages = thread.get('messages', [])
+        if len(messages) > max_messages:
+            messages = messages[-max_messages:]
+        for msg in messages:
+            payload = msg.get('payload', {})
+            summary.append({
+                'id': msg.get('id'),
+                'threadId': msg.get('threadId'),
+                'from': self._get_header_value(msg, 'from'),
+                'to': self._get_header_value(msg, 'to'),
+                'subject': self._get_header_value(msg, 'subject'),
+                'date': self._get_header_value(msg, 'date'),
+                'snippet': msg.get('snippet'),
+                'body': self._decode_message_text(payload, max_chars=body_limit)
+            })
+        return summary
+
     def extract_client_from_thread(self, thread_id: str, preloaded_thread: Optional[Dict] = None, agent_email: Optional[str] = None) -> Dict[str, Any]:
         """Extract client data from Gmail thread"""
         logger.info(f"Extracting from thread: {thread_id}")
@@ -284,61 +350,27 @@ class LeadExtractor:
         logger.info(f"Extracted: {client_data.get('client_name', 'Unknown')}")
         return client_data
     
-    def _truncate_thread_for_claude(self, thread: Dict, max_chars: int = 400000) -> Dict:
+    def _truncate_thread_for_claude(self, thread: Dict) -> str:
         """
-        Truncate thread content to stay under Claude's token limit.
-        ~4 chars per token, so 400k chars ≈ 100k tokens (safe margin under 200k limit)
+        Build a trimmed thread summary string for the model to prevent huge prompts.
+        Keeps only headers/snippet/body (plain text) for the most recent messages.
         """
-        thread_json = json.dumps(thread, indent=2)
+        # Start with a modest slice
+        summary = self._build_thread_summary(thread, max_messages=5, body_limit=4000)
+        summary_json = json.dumps(summary, indent=2)
 
-        if len(thread_json) <= max_chars:
-            return thread
+        # If still large, shrink aggressively
+        if len(summary_json) > 20000:
+            summary = self._build_thread_summary(thread, max_messages=3, body_limit=1200)
+            summary_json = json.dumps(summary, indent=2)
+        if len(summary_json) > 20000:
+            summary = self._build_thread_summary(thread, max_messages=1, body_limit=800)
+            summary_json = json.dumps(summary, indent=2)
+        if len(summary_json) > 20000:
+            logger.warning(f"Thread too large ({len(summary_json)} chars) even after trimming; truncating string for prompt.")
+            summary_json = summary_json[:20000] + "...(truncated)"
 
-        logger.warning(f"Thread too large ({len(thread_json)} chars), truncating...")
-
-        # Create truncated copy
-        truncated = thread.copy()
-        messages = truncated.get('messages', [])
-
-        if messages:
-            # Keep first and last message, truncate middle ones
-            truncated_messages = []
-
-            for i, msg in enumerate(messages):
-                msg_copy = msg.copy()
-                payload = msg_copy.get('payload', {})
-
-                # Truncate large body content
-                if 'body' in payload and payload['body'].get('data'):
-                    body_data = payload['body']['data']
-                    if len(body_data) > 10000:
-                        msg_copy['payload'] = payload.copy()
-                        msg_copy['payload']['body'] = {'data': body_data[:10000] + '...[TRUNCATED]'}
-
-                # Truncate parts
-                if 'parts' in payload:
-                    truncated_parts = []
-                    for part in payload['parts']:
-                        part_copy = part.copy()
-                        if 'body' in part_copy and part_copy['body'].get('data'):
-                            part_data = part_copy['body']['data']
-                            if len(part_data) > 10000:
-                                part_copy['body'] = {'data': part_data[:10000] + '...[TRUNCATED]'}
-                        truncated_parts.append(part_copy)
-                    msg_copy['payload'] = msg_copy.get('payload', {}).copy()
-                    msg_copy['payload']['parts'] = truncated_parts
-
-                truncated_messages.append(msg_copy)
-
-            truncated['messages'] = truncated_messages
-
-        # Final check - if still too large, keep only first message
-        final_json = json.dumps(truncated, indent=2)
-        if len(final_json) > max_chars and messages:
-            logger.warning("Still too large, keeping only first message")
-            truncated['messages'] = [truncated['messages'][0]] if truncated['messages'] else []
-
-        return truncated
+        return summary_json
 
     def _extract_with_claude(self, thread: Dict, thread_id: str) -> Dict:
         """Use Claude to extract structured client data"""
@@ -396,7 +428,7 @@ CRITICAL RULES:
 - For families, extract PRIMARY applicant (usually first mentioned adult)
 
 EMAIL THREAD:
-{json.dumps(truncated_thread, indent=2)}
+{truncated_thread}
 
 Return ONLY valid JSON:
 {{

@@ -1,0 +1,24 @@
+client_name,client_phone,client_email,monthly_premium,aca_premium,annual_income,referring_agent,application_number,household_size,zip_code,date_of_birth,dependents,contact_notes,thread_id,confidence,is_duplicate,extracted_at
+John Trent,828-406-2482,,,,30000,Jordan Gassner,,2,,,,SOLD,19995428e9ffab00,high,,2025-12-07T21:36:16.784057
+Chelsey Nisbett,407-432-3893,,,,45000,Jordan Gassner,,,,,,,198c78b7009c4bc7,high,,2025-12-07T21:37:18.434109
+Rija,,,180,180,55000,Jordan Gassner,,2,,,"married, husband not on plan but claimed",doesn't answer the damn phone,19978279727b04cf,medium,,2025-12-07T21:38:16.049769
+Dustin Coleman,659-400-1966,,,,22000,Jordan Gassner,,,,,,,19977913c5cd1c8f,high,,2025-12-07T21:39:16.493014
+Jill Davis,561-445-8215,,,,,Jordan Gassner,,,,,,Client was confused initially but sale was completed,19973192ef07b097,high,,2025-12-07T21:40:19.292127
+,,,,5,,Jordan Gassner,,3,70537,,husband and son (son on medicaid),"Client called multiple times, had issues with husband's SSN, ongoing enrollment challenges, enrolled in bronze ACA Ambetter plan",198604b96b557c44,low,,2025-12-07T21:41:17.294708
+Matthew Rhoades,419-203-7891,,108,,35000,Jordan Gassner,,,,,,Sold and paid - went with Caresource at $108/month over Med Mutual at $155/month,197ad7463305fa6d,high,,2025-12-07T21:42:18.405321
+Michelle L Sanders,678-836-4783,,,,30000,Jordan Gassner,,,,,,She said around 4:30PM would be perfect today if you can,1976adadb3b279f2,high,,2025-12-07T21:43:18.154411
+,,,,,,Jordan Gassner,,,,,,Client was on medicaid and needs to submit denial doc. QLE required for KY mid-year policy. Deal sold and paid.,19668044a5a3abc3,low,,2025-12-07T21:44:18.746258
+Sabina Marshall,803-260-2578,,,,22500,Jordan Gassner,,,,,,Phone number noted as incorrect by Christopher Shannahan. Case marked as sold and paid.,196d48e30dc2992d,high,,2025-12-07T21:45:17.910067
+Annette Rodriguez,,,,0,,Jordan Gassner,,,,,,"Client had existing $0 ACA plan, required AOR switch with marketplace due to DOB issues",196b1d6f434a67bb,medium,,2025-12-07T21:46:16.628879
+Samantha Calabrese,907-953-1158,,,,20000,Jordan Gassner,,,,,,sold and paid,196815dc1bc3a0f5,high,,2025-12-07T21:47:17.913578
+Tyna Hembrecht,816-446-2665,,,,23500,Jordan Gassner,,,,,,sold and paid,1968158f8e069dc4,high,,2025-12-07T21:48:17.540187
+Angela Elumelu,443-546-5129,,,,22000,Jordan Gassner,,,,,,sold and paid,1968390265035572,high,,2025-12-07T21:49:16.354239
+,,,,,,Jordan Gassner,,,,,,,196583931b8f5dbd,low,,2025-12-07T21:50:16.244004
+Leah Bicknell,410-660-0414,,,,,Jordan Gassner,,,,,,Anytime after 1:00PM today,19663275fc2331b6,high,,2025-12-07T21:51:16.584028
+Gabriela Frazier,254-577-2717,,,,,Jordan Gassner,,,,,,"Today if possible, anytime in the afternoon if possible",1965eaf78f5b4b23,high,,2025-12-07T21:52:18.475255
+,,,,,,Jordan Gassner,,,,,,,195e21367d72e6f5,low,,2025-12-07T21:53:18.789577
+Fiona Aune,773-708-0018,,,,21000,Jordan Gassner,,,,,,,19644ceab6887e2c,high,,2025-12-07T21:54:16.556423
+Tammy Naron,817-239-9569,,,,,Jordan Gassner,,,,,married (convinced to file jointly),"Sold and paid, went with AMBetter plan",19634ac4689d48b6,high,,2025-12-07T21:55:17.749877
+Shawn Swarthout,727-623-6140,,,,,Jordan Gassner,,,,,,,19634a7f885b2cd8,high,,2025-12-07T21:56:16.943696
+,,,,,,Jordan Gassner,,,,,,Client was enrolled in BCBS through assistance program due to miscommunication,195ec90cecad3232,low,,2025-12-07T21:57:16.187376
+,407-592-7380,,,,,Jordan Gassner,,,,,,Status: Sold and Paid. Client information was in attached screenshot that is not visible in email text.,195cdb823f348251,low,,2025-12-07T21:58:18.097218

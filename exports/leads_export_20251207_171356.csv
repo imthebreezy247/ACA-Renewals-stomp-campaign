@@ -1,0 +1,9 @@
+client_name,client_phone,client_email,monthly_premium,aca_premium,annual_income,referring_agent,application_number,household_size,zip_code,date_of_birth,dependents,contact_notes,thread_id,confidence,is_duplicate,extracted_at
+Rija,,,180,180,55000,Jordan Gassner,,2,,,married with husband not on plan,doesn't answer the damn phone,19978279727b04cf,medium,,2025-12-07T22:06:53.834555
+,,,,5,,Jordan Gassner,,3,70537,,husband and son (son on medicaid),"Family of 3, bronze ACA Ambetter plan, make too much for silver, son is on Medicaid, ongoing issues with husband's SSN",198604b96b557c44,low,,2025-12-07T22:07:55.623898
+,,,,,,Jordan Gassner,,,,,,Client was on Medicaid and needs to submit denial documentation. Needs QLE for mid-year policy in KY. Case marked as 'sold and paid'.,19668044a5a3abc3,low,,2025-12-07T22:08:56.838524
+Annette Rodriguez,,,,,,Jordan Gassner,,,,,,"Client already has a $0 plan, required AOR switch with marketplace due to DOB issues",196b1d6f434a67bb,medium,,2025-12-07T22:09:54.494266
+,,,,,,Jordan Gassner,,,,,,,196583931b8f5dbd,low,,2025-12-07T22:10:54.259293
+,,,,,,Jordan Gassner,,,,,,,195e21367d72e6f5,low,,2025-12-07T22:11:56.629342
+,,,,,,Jordan Gassner,,,,,,,195ec90cecad3232,low,,2025-12-07T22:12:53.510145
+,407-592-7380,,,,,Jordan Gassner,,,,,,Referenced screenshot attachment with client information,195cdb823f348251,low,,2025-12-07T22:13:56.635184

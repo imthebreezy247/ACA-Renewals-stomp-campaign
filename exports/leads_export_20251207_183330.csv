@@ -1,0 +1,9 @@
+client_name,client_phone,client_email,monthly_premium,aca_premium,annual_income,referring_agent,application_number,household_size,zip_code,date_of_birth,dependents,contact_notes,thread_id,confidence,is_duplicate,extracted_at
+Syeda Rahmani,808-366-9723,,799.16,,90000,Nick Salamanca,,,60661,1986-07-17,,She was very demanding about only wanting this BCBS plan,19793a62210291fc,high,,2025-12-07T23:26:33.316580
+Mandy Desfonds,,,,,,Nick Salamanca,,,,,,,1972739fb61406e4,low,,2025-12-07T23:27:31.009170
+Rebecca Brown,,,155,39.51,,Nick Salamanca,,,,,,Client will call back with card number after work; mentioned she was told different premium amount initially ($136 vs $203),19687fa167ab3e4b,medium,,2025-12-07T23:28:33.291925
+Jason Snyder,832-704-4444,,115.39,2.08,23000,Nick Salamanca,,,80246,1979-08-24,,QLE - lost coverage 02/28/2025,196880be2b956fab,high,,2025-12-07T23:29:32.691781
+Mark Blaine,407-461-5673,,146.3,37.37,29000,Nick Salamanca,,,32708,1961-02-22,,Described as difficult client from the beginning,195ed25719951249,high,,2025-12-07T23:30:33.466243
+Daniel McEnanly,,,,,,Nick Salamanca,,,,,,"Client didn't know his SSN initially, needed to wait until 10-11pm to get it. Application was completed and sold/paid.",195ed1aa18c07e5b,medium,,2025-12-07T23:31:31.989403
+Mackenzie Ouellette,,,,,,Nick Salamanca,,,,,,,195ec6bb4670128c,medium,,2025-12-07T23:32:30.779349
+Margaret Parsons,,,,,,Nick Salamanca,,,,,,,195d8b904a9fc9b6,low,,2025-12-07T23:33:30.980385

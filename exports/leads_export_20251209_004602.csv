@@ -1,0 +1,4 @@
+client_name,client_phone,client_email,monthly_premium,aca_premium,annual_income,referring_agent,application_number,household_size,zip_code,date_of_birth,dependents,contact_notes,thread_id,confidence,is_duplicate,extracted_at
+Christy,,,,,60000,Nelson Comas,,2,,,son,"Scheduled for 4:30pm appointment, said she would be busy in afternoon",19a07b9e784d9cbb,medium,,2025-12-09T04:39:45.458239
+Matthews Rodriguez,,,,,20000,Nelson Comas,,1,,,,"Tanya will handle this case, contact number 81-817-1551. Texted and called multiple times.",199c94ed50b41025,medium,,2025-12-09T04:40:44.614141
+Denise McClain,,,,,,Nelson Comas,,,,,,,19549a984a4e5615,low,,2025-12-09T04:42:25.068033

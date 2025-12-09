@@ -1,0 +1,9 @@
+client_name,client_phone,client_email,monthly_premium,aca_premium,annual_income,referring_agent,application_number,household_size,zip_code,date_of_birth,dependents,contact_notes,thread_id,confidence,is_duplicate,extracted_at
+Tyler Swallows,937-300-2701,,,,29000,Daniel Hera,,1,,,,SOLD - Application completed,199f28e51e654c95,high,,2025-12-08T20:54:26.597059
+William Dickey,850-524-6218,,,,22000,Daniel Hera,,,,,,Client was sold coverage with Ambetter after Capital Health was not available,199df429543b4000,high,,2025-12-08T20:55:26.302816
+Helen Williams,940-442-1060,,,,12000,Daniel Hera,,,,,,,199bb46e4732e427,high,,2025-12-08T20:56:25.952469
+Melissa Sanders,817-521-4430,,,200,35000,Daniel Hera,,4,,,,,1999fa461f4f279b,high,,2025-12-08T20:57:25.632588
+Sheniqua Major,786-913-9634,,,,16000,Daniel Hera,,,,,,,199868565cba57a5,high,,2025-12-08T20:58:26.317493
+Madison Baker,706-819-9502,,,,29000,Daniel Hera,,2,,,,Located in Newton County,1998684f58cb0b68,high,,2025-12-08T20:59:26.268845
+Raymond Cobb,903-208-0463,,,,25000,Daniel Hera,,,,,,"Available anytime, has contacted agent asking about signup status",1991045854e0609f,high,,2025-12-08T21:00:27.207860
+Brida Rozas,304-618-2605,,140.13,,48000,Daniel Hera,,,,,,"Application was being wrapped up, client should answer calls, agent can text if needed",1997beb0e2d485cb,high,,2025-12-08T21:01:26.440971
